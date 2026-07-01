@@ -4,6 +4,7 @@ import com.atharva.nutricheckai.dto.UserProfileRequest;
 import com.atharva.nutricheckai.dto.UserProfileResponse;
 import com.atharva.nutricheckai.entity.User;
 import com.atharva.nutricheckai.entity.UserProfile;
+import com.atharva.nutricheckai.exception.ResourceNotFoundException;
 import com.atharva.nutricheckai.repository.UserProfileRepository;
 import com.atharva.nutricheckai.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -94,11 +95,11 @@ public class UserProfileService {
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() ->
-                        new RuntimeException("User not found"));
+        new ResourceNotFoundException("User not found"));
 
         UserProfile profile = userProfileRepository.findByUser(user)
                 .orElseThrow(() ->
-                        new RuntimeException("Profile not found"));
+        new ResourceNotFoundException("Profile not found"));
 
         userProfileRepository.delete(profile);
     }
