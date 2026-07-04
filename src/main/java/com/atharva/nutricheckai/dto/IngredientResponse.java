@@ -1,6 +1,8 @@
 package com.atharva.nutricheckai.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -13,11 +15,5 @@ public class IngredientResponse {
 
     private String description;
 
-    private String safetyStatus;
-
     private String category;
-
-    private String source;
-
-    private String notes;
 }

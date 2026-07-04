@@ -10,6 +10,10 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -53,10 +57,53 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(error, HttpStatus.CONFLICT);
     }
 
+    @ExceptionHandler(com.atharva.nutricheckai.exception.OCRException.class)
+    public ResponseEntity<Map<String, Object>> handleOCRException(
+            com.atharva.nutricheckai.exception.OCRException ex) {
+
+        log.error("OCR Exception: {}", ex.getMessage(), ex);
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", 500);
+        error.put("error", "Internal Server Error");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler({IllegalArgumentException.class, org.springframework.web.multipart.MultipartException.class})
+    public ResponseEntity<Map<String, Object>> handleBadRequestExceptions(
+            Exception ex) {
+
+        log.warn("Bad Request Exception: {}", ex.getMessage());
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", 400);
+        error.put("error", "Bad Request");
+        error.put("message", ex.getMessage());
+
+        return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<Map<String, Object>> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex) {
+
+        log.warn("Max upload size exceeded: {}", ex.getMessage());
+        Map<String, Object> error = new HashMap<>();
+        error.put("timestamp", LocalDateTime.now());
+        error.put("status", 413);
+        error.put("error", "Payload Too Large");
+        error.put("message", "File size exceeds the maximum allowed limit");
+
+        return new ResponseEntity<>(error, HttpStatus.PAYLOAD_TOO_LARGE);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(
             Exception ex) {
 
+        log.error("Unhandled Exception: {}", ex.getMessage(), ex);
         Map<String, Object> error = new HashMap<>();
 
         error.put("timestamp", LocalDateTime.now());

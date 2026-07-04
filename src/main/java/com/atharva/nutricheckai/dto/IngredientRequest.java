@@ -1,9 +1,9 @@
 package com.atharva.nutricheckai.dto;
 
-import com.atharva.nutricheckai.enums.IngredientCategory;
-import com.atharva.nutricheckai.enums.SafetyStatus;
 import jakarta.validation.constraints.NotBlank;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
@@ -16,17 +16,6 @@ public class IngredientRequest {
     @NotBlank(message = "Description is required")
     private String description;
 
-    @NotBlank(message = "Safety status is required")
-    private SafetyStatus safetyStatus;
-
     @NotBlank(message = "Category is required")
-    private IngredientCategory category;
-
-
-    
-
-    @NotBlank(message = "Source is required")
-    private String source;
-
-    private String notes;
+    private String category;
 }

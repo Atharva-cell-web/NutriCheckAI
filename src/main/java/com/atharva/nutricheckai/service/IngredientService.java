@@ -17,6 +17,7 @@ public class IngredientService {
 
     private final IngredientRepository ingredientRepository;
 
+    // Create Ingredient
     public IngredientResponse createIngredient(IngredientRequest request) {
 
         if (ingredientRepository.existsByName(request.getName())) {
@@ -27,15 +28,14 @@ public class IngredientService {
 
         ingredient.setName(request.getName());
         ingredient.setDescription(request.getDescription());
-        ingredient.setSafetyStatus(request.getSafetyStatus());
         ingredient.setCategory(request.getCategory());
-        ingredient.setSource(request.getSource());
-        ingredient.setNotes(request.getNotes());
 
         Ingredient savedIngredient = ingredientRepository.save(ingredient);
 
         return mapToResponse(savedIngredient);
     }
+
+    // Get All Ingredients
     public List<IngredientResponse> getAllIngredients() {
 
         return ingredientRepository.findAll()
@@ -43,6 +43,8 @@ public class IngredientService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
+    // Get Ingredient By Id
     public IngredientResponse getIngredientById(Long id) {
 
         Ingredient ingredient = ingredientRepository.findById(id)
@@ -51,6 +53,8 @@ public class IngredientService {
 
         return mapToResponse(ingredient);
     }
+
+    // Update Ingredient
     public IngredientResponse updateIngredient(Long id,
                                                IngredientRequest request) {
 
@@ -66,15 +70,14 @@ public class IngredientService {
 
         ingredient.setName(request.getName());
         ingredient.setDescription(request.getDescription());
-        ingredient.setSafetyStatus(request.getSafetyStatus());
         ingredient.setCategory(request.getCategory());
-        ingredient.setSource(request.getSource());
-        ingredient.setNotes(request.getNotes());
 
         Ingredient updatedIngredient = ingredientRepository.save(ingredient);
 
         return mapToResponse(updatedIngredient);
     }
+
+    // Delete Ingredient
     public void deleteIngredient(Long id) {
 
         Ingredient ingredient = ingredientRepository.findById(id)
@@ -83,6 +86,8 @@ public class IngredientService {
 
         ingredientRepository.delete(ingredient);
     }
+
+    // Entity -> DTO
     private IngredientResponse mapToResponse(Ingredient ingredient) {
 
         IngredientResponse response = new IngredientResponse();
@@ -90,10 +95,7 @@ public class IngredientService {
         response.setId(ingredient.getId());
         response.setName(ingredient.getName());
         response.setDescription(ingredient.getDescription());
-        response.setSafetyStatus(ingredient.getSafetyStatus());
         response.setCategory(ingredient.getCategory());
-        response.setSource(ingredient.getSource());
-        response.setNotes(ingredient.getNotes());
 
         return response;
     }

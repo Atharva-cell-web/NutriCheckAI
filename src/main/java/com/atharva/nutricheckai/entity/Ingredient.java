@@ -1,9 +1,10 @@
 package com.atharva.nutricheckai.entity;
 
-import com.atharva.nutricheckai.enums.IngredientCategory;
-import com.atharva.nutricheckai.enums.SafetyStatus;
+
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
 @Table(name = "ingredients")
@@ -22,14 +23,5 @@ public class Ingredient {
     @Column(length = 1000)
     private String description;
 
-    @Enumerated(EnumType.STRING)
-    private SafetyStatus safetyStatus;
-
-    @Enumerated(EnumType.STRING)
-    private IngredientCategory category;
-
-    private String source;
-
-    @Column(length = 2000)
-    private String notes;
+    private String category;
 }
