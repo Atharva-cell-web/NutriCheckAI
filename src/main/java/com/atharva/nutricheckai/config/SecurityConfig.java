@@ -13,8 +13,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.http.HttpMethod;
 
 import org.springframework.beans.factory.annotation.Value;
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -22,10 +24,10 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
 
-    // CORS origins — comma-separated list injected via env var CORS_ALLOWED_ORIGINS on Render
-    // Falls back to localhost for local development
+    // CORS origins injected via ALLOWED_ORIGINS env var on Render
+    // Falls back to localhost for local dev
     @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
-    private List<String> allowedOrigins;
+    private String allowedOriginsRaw;
 
     public SecurityConfig(
             JwtAuthenticationFilter jwtAuthenticationFilter,
@@ -43,9 +45,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/categories/**").authenticated()
-                        .requestMatchers("/api/products/**").authenticated()
-                        .requestMatchers("/api/history/**").authenticated()
+                        // Allow OPTIONS preflight for ALL endpoints (required for CORS)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/test-ai").permitAll()
                         .anyRequest().authenticated()
@@ -65,11 +66,18 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        // Allow the React dev server and deployed frontend origins from properties
-        config.setAllowedOrigins(allowedOrigins);
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        // Parse comma-separated origins from env var
+        List<String> origins = Arrays.stream(allowedOriginsRaw.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+
+        config.setAllowedOrigins(origins);
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L); // Cache preflight for 1 hour
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
@@ -80,4 +88,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-}
+}
