@@ -22,7 +22,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final CustomUserDetailsService customUserDetailsService;
 
-    @Value("${app.cors.allowed-origins}")
+    // CORS origins — comma-separated list injected via env var CORS_ALLOWED_ORIGINS on Render
+    // Falls back to localhost for local development
+    @Value("${app.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private List<String> allowedOrigins;
 
     public SecurityConfig(
