@@ -10,7 +10,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -24,6 +28,8 @@ import java.util.stream.Collectors;
  * OCRService — extracts ingredient text from images using Gemini Vision API.
  * This replaces the Tesseract-based approach which required a local binary installation.
  * Gemini Vision handles multilingual labels and handwritten text far better than Tesseract.
+ *
+ * Uses @Retryable to transparently retry on transient 503 / overload errors.
  */
 @Slf4j
 @Service
@@ -36,16 +42,31 @@ public class OCRService {
     @Value("${gemini.api.key}")
     private String apiKey;
 
-    private static final String GEMINI_URL =
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=";
+    /** Configured via gemini.model in application.properties / env var GEMINI_MODEL */
+    @Value("${gemini.model:gemini-2.0-flash}")
+    private String geminiModel;
+
+    private String buildUrl() {
+        return "https://generativelanguage.googleapis.com/v1beta/models/"
+                + geminiModel + ":generateContent?key=" + apiKey;
+    }
 
     /**
      * Extracts raw ingredient text from a product label image using Gemini Vision.
+     * Retries automatically on 503 (Service Unavailable) with exponential backoff.
      */
+    @Retryable(
+        retryFor = { HttpServerErrorException.ServiceUnavailable.class,
+                     HttpServerErrorException.class },
+        maxAttemptsExpression = "${gemini.retry.max-attempts:3}",
+        backoff = @Backoff(delayExpression = "${gemini.retry.backoff-ms:2000}", multiplier = 2)
+    )
     public String extractText(MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("Cannot extract text from an empty file");
         }
+
+        log.info("OCR: calling Gemini Vision model [{}]", geminiModel);
 
         try {
             // Encode image to Base64
@@ -70,7 +91,7 @@ public class OCRService {
             HttpEntity<GeminiRequest> entity = new HttpEntity<>(request, headers);
 
             ResponseEntity<String> response = restTemplate.exchange(
-                    GEMINI_URL + apiKey,
+                    buildUrl(),
                     HttpMethod.POST,
                     entity,
                     String.class
@@ -86,10 +107,24 @@ public class OCRService {
         } catch (IOException e) {
             log.error("IO error reading uploaded image: {}", e.getMessage(), e);
             throw new OCRException("Failed to read the uploaded image file", e);
+        } catch (HttpServerErrorException e) {
+            // Re-throw so @Retryable can intercept and retry
+            log.warn("OCR: Gemini Vision returned HTTP {}, will retry if attempts remain", e.getStatusCode());
+            throw e;
         } catch (Exception e) {
             log.error("Gemini Vision OCR failed: {}", e.getMessage(), e);
             throw new OCRException("Failed to extract text from image using AI. Please try a clearer image.", e);
         }
+    }
+
+    /**
+     * Recovery method — called when all OCR retry attempts are exhausted.
+     */
+    @Recover
+    public String recoverExtractText(Exception ex, MultipartFile file) {
+        log.error("All OCR retry attempts exhausted. Model: [{}]. Cause: {}", geminiModel, ex.getMessage());
+        throw new OCRException(
+                "The AI image service is temporarily unavailable. Please wait a moment and try again.", ex);
     }
 
     /**
