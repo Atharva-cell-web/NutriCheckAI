@@ -12,12 +12,20 @@ public class GeminiResponseParser {
     private final ObjectMapper objectMapper;
 
     public AnalysisResponse parse(String aiResponse) {
-
         try {
-            return objectMapper.readValue(aiResponse, AnalysisResponse.class);
-
+            String clean = aiResponse == null ? "" : aiResponse.trim();
+            if (clean.startsWith("```json")) {
+                clean = clean.substring(7);
+            } else if (clean.startsWith("```")) {
+                clean = clean.substring(3);
+            }
+            if (clean.endsWith("```")) {
+                clean = clean.substring(0, clean.length() - 3);
+            }
+            clean = clean.trim();
+            return objectMapper.readValue(clean, AnalysisResponse.class);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse Gemini response", e);
+            throw new RuntimeException("Failed to parse AI response: " + e.getMessage(), e);
         }
     }
 }

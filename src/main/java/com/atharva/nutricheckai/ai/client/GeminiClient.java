@@ -36,7 +36,7 @@ public class GeminiClient {
     private String apiKey;
 
     /** Groq model for ingredient analysis — change via GROQ_MODEL env var */
-    @Value("${groq.model:llama-3.3-70b-versatile}")
+    @Value("${groq.model:qwen/qwen3.8-27b}")
     private String model;
 
     private static final String GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -57,12 +57,13 @@ public class GeminiClient {
     public String callGemini(String prompt) {
         log.info("Calling Groq model [{}]", model);
 
-        // OpenAI-compatible request format
+        // OpenAI-compatible request format with JSON mode
         Map<String, Object> message = Map.of("role", "user", "content", prompt);
         Map<String, Object> requestBody = Map.of(
                 "model", model,
                 "messages", List.of(message),
-                "temperature", 0.3
+                "temperature", 0.2,
+                "response_format", Map.of("type", "json_object")
         );
 
         HttpHeaders headers = new HttpHeaders();
